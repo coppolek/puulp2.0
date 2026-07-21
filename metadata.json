@@ -1,0 +1,6 @@
+{
+  "name": "FlowBlog",
+  "description": "Un blog a pagina singola dove gli articoli vengono letti in frammenti successivi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
