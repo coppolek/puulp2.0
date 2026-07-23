@@ -16,6 +16,14 @@ export interface ReadingProgress {
   lastReadAt: number;
 }
 
+export interface RssFeed {
+  id: string;
+  category: string;
+  url: string;
+  active: boolean;
+  lastFetched?: number;
+}
+
 export interface Comment {
   id: string;
   articleId: string;

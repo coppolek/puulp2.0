@@ -70,7 +70,7 @@ export default function ArticleReader({ article, allArticles, user, initialVisib
   };
 
   const articleTitleWords = getWords(article.title);
-  const articleTagWords = article.tags?.flatMap(tag => getWords(tag)) || [];
+  const articleTagWords = (Array.isArray(article.tags) ? article.tags : typeof article.tags === 'string' ? [article.tags] : []).flatMap(tag => getWords(tag));
 
   const relatedArticles = allArticles
     .filter(a => a.id !== article.id)
@@ -78,7 +78,7 @@ export default function ArticleReader({ article, allArticles, user, initialVisib
       let score = 0;
       if (a.category === article.category) score += 3;
       
-      const aTagWords = a.tags?.flatMap(tag => getWords(tag)) || [];
+      const aTagWords = (Array.isArray(a.tags) ? a.tags : typeof a.tags === 'string' ? [a.tags] : []).flatMap(tag => getWords(tag));
       const commonTags = aTagWords.filter(tag => articleTagWords.includes(tag));
       score += commonTags.length * 2;
       
@@ -133,13 +133,31 @@ export default function ArticleReader({ article, allArticles, user, initialVisib
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [chunks.length]);
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const url = new URL(window.location.href);
     url.searchParams.set('article', article.id);
     url.searchParams.set('chunk', visibleCount.toString());
-    navigator.clipboard.writeText(url.toString());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      // Fallback for older browsers or if clipboard API fails
+      const textArea = document.createElement("textarea");
+      textArea.value = url.toString();
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Fallback failed: ', err);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const handleAddComment = async (chunkIndex: number) => {

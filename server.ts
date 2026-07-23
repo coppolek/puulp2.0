@@ -23,6 +23,106 @@ async function startServer() {
   });
 
   // API Routes
+  app.post("/api/parse-rss", async (req, res) => {
+    try {
+      const { url } = req.body;
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      const Parser = (await import('rss-parser')).default;
+      const parser = new Parser({
+        customFields: {
+          item: [
+            ['media:content', 'mediaContent', {keepArray: true}],
+            ['media:thumbnail', 'mediaThumbnail'],
+            ['enclosure', 'enclosure']
+          ]
+        }
+      });
+      const fetchResponse = await fetch(url);
+      let xml = await fetchResponse.text();
+      xml = xml.replace(/&(?!([a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+);)/g, '&amp;');
+      
+      // Fix boolean attributes (e.g. <img async> to <img async="async">) which cause xml2js to crash
+      xml = xml.replace(/<(?!\/?!)([^>]+)>/g, (match, tagContent) => {
+        let tagParts = tagContent.match(/^(\/?[a-zA-Z0-9_:-]+)\s*(.*)$/);
+        if (!tagParts) return match;
+        
+        let tagName = tagParts[1];
+        let attrs = tagParts[2];
+        if (!attrs.trim()) return match;
+        
+        let isSelfClosing = attrs.endsWith('/');
+        if (isSelfClosing) {
+          attrs = attrs.slice(0, -1);
+        }
+        
+        let newAttrs = attrs.replace(/([a-zA-Z0-9_:-]+)(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?/g, (attrMatch, attrName) => {
+          if (!attrMatch.includes('=')) {
+            return `${attrName}="${attrName}"`;
+          }
+          return attrMatch;
+        });
+        
+        return `<${tagName}${newAttrs ? ' ' + newAttrs : ''}${isSelfClosing ? '/' : ''}>`;
+      });
+
+      // Fix unescaped HTML by wrapping in CDATA, but only if not already containing CDATA
+      xml = xml.replace(/<(title|description|content:encoded|content|summary|media:description|subtitle)([^>]*)>([\s\S]*?)<\/\1>/gi, (match, tag, attrs, content) => {
+        if (content.includes('<![CDATA[')) {
+          return match;
+        }
+        return `<${tag}${attrs}><![CDATA[${content}]]></${tag}>`;
+      });
+      
+      const feed = await parser.parseString(xml);
+      
+      if (feed && feed.items) {
+        feed.items = await Promise.all(feed.items.map(async (item: any) => {
+          let imageUrl = '';
+          if (item.enclosure && item.enclosure.url && item.enclosure.type && item.enclosure.type.startsWith('image/')) {
+            imageUrl = item.enclosure.url;
+          } else if (item.mediaContent && Array.isArray(item.mediaContent) && item.mediaContent.length > 0 && item.mediaContent[0]['$'] && item.mediaContent[0]['$'].url) {
+            imageUrl = item.mediaContent[0]['$'].url;
+          } else if (item.mediaContent && item.mediaContent['$'] && item.mediaContent['$'].url) {
+            imageUrl = item.mediaContent['$'].url;
+          } else if (item.mediaThumbnail && item.mediaThumbnail['$'] && item.mediaThumbnail['$'].url) {
+            imageUrl = item.mediaThumbnail['$'].url;
+          } else {
+            const content = item.content || item.contentSnippet || item.description || '';
+            const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
+            if (imgMatch) {
+              imageUrl = imgMatch[1];
+            }
+          }
+          
+          // Fallback: try to fetch og:image from the article URL
+          if (!imageUrl && item.link) {
+            try {
+              const res = await fetch(item.link, { signal: AbortSignal.timeout(3000) });
+              const html = await res.text();
+              const match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) || 
+                            html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+              if (match) {
+                imageUrl = match[1];
+              }
+            } catch (e) {
+              console.log("Error fetching og:image for", item.link);
+            }
+          }
+          
+          return { ...item, extractedImageUrl: imageUrl };
+        }));
+      }
+
+      res.json({ feed });
+    } catch (error) {
+      console.error("RSS Parsing Error:", error);
+      res.status(500).json({ error: "Failed to parse RSS feed" });
+    }
+  });
+
   app.post("/api/summarize", async (req, res) => {
     try {
       const { text } = req.body;

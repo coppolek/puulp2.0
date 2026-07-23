@@ -1,35 +1,52 @@
-import { useState, FormEvent, useRef } from 'react';
+  import { useState, useEffect, FormEvent, useRef } from 'react';
 import { Article } from '../types';
 import { ChevronLeft, Send, Bold, Italic, Link as LinkIcon, List, Quote, Image as ImageIcon } from 'lucide-react';
 
 interface CreatePostProps {
+  categories: string[];
   onSave: (article: Omit<Article, 'id' | 'createdAt'>) => void;
   onCancel: () => void;
+  initialArticle?: Article;
 }
 
-export default function CreatePost({ onSave, onCancel }: CreatePostProps) {
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
-  const [content, setContent] = useState('');
-  const [author, setAuthor] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [tags, setTags] = useState('');
+export default function CreatePost({ categories, onSave, onCancel, initialArticle }: CreatePostProps) {
+  const [title, setTitle] = useState(initialArticle?.title || '');
+  const [category, setCategory] = useState(initialArticle?.category || (categories.length > 0 ? categories[0] : 'Tech'));
+  const [customCategory, setCustomCategory] = useState('');
+  const [content, setContent] = useState(initialArticle?.content || '');
+  const [author, setAuthor] = useState(initialArticle?.author || '');
+  const [imageUrl, setImageUrl] = useState(initialArticle?.imageUrl || '');
+  const [tags, setTags] = useState(Array.isArray(initialArticle?.tags) ? initialArticle?.tags.join(', ') : (initialArticle?.tags || ''));
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const displayCategories = Array.from(new Set([...categories, "Altro"])).sort();
+
+  // If editing an article with a custom category not in the list, set it up
+  useEffect(() => {
+    if (initialArticle?.category && !displayCategories.includes(initialArticle.category)) {
+      setCategory('Altro');
+      setCustomCategory(initialArticle.category);
+    }
+  }, [initialArticle]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !category.trim() || !content.trim()) return;
+    const finalCategory = category === 'Altro' ? customCategory : category;
+    if (!title.trim() || !finalCategory.trim() || !content.trim()) return;
     
     const parsedTags = tags.split(',').map(t => t.trim()).filter(t => t !== '');
 
-    onSave({ 
+    const payload: Omit<Article, 'id' | 'createdAt'> = {
       title: title.trim(), 
-      category: category.trim(), 
-      content: content.trim(),
-      author: author.trim() || undefined,
-      imageUrl: imageUrl.trim() || undefined,
-      tags: parsedTags.length > 0 ? parsedTags : undefined
-    });
+      category: finalCategory.trim(), 
+      content: content.trim()
+    };
+    
+    if (author.trim()) payload.author = author.trim();
+    if (imageUrl.trim()) payload.imageUrl = imageUrl.trim();
+    if (parsedTags.length > 0) payload.tags = parsedTags;
+
+    onSave(payload);
   };
 
   const insertFormatting = (prefix: string, suffix: string = '') => {
@@ -61,7 +78,9 @@ export default function CreatePost({ onSave, onCancel }: CreatePostProps) {
         Annulla
       </button>
       
-      <h1 className="text-4xl sm:text-5xl font-black mb-10 text-black tracking-tighter uppercase">Nuovo Articolo</h1>
+      <h1 className="text-4xl sm:text-5xl font-black mb-10 text-black tracking-tighter uppercase">
+        {initialArticle ? 'Modifica Articolo' : 'Nuovo Articolo'}
+      </h1>
 
       <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 sm:p-12 rounded-[40px] border-4 border-black shadow-2xl relative">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
@@ -79,14 +98,28 @@ export default function CreatePost({ onSave, onCancel }: CreatePostProps) {
           
           <div>
             <label className="block text-sm font-black text-black uppercase tracking-widest mb-3">Categoria</label>
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-6 py-4 rounded-2xl border-4 border-gray-200 focus:border-[#FF6321] outline-none transition-all text-lg font-bold text-black"
-              placeholder="es. Tech, Design, Cultura..."
-              required
-            />
+            <div className="flex flex-col gap-3">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-6 py-4 rounded-2xl border-4 border-gray-200 focus:border-[#FF6321] outline-none transition-all text-lg font-bold text-black appearance-none bg-white"
+                required
+              >
+                {displayCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              {category === 'Altro' && (
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  className="w-full px-6 py-4 rounded-2xl border-4 border-gray-200 focus:border-[#FF6321] outline-none transition-all text-lg font-bold text-black"
+                  placeholder="Inserisci una nuova categoria..."
+                  required
+                />
+              )}
+            </div>
           </div>
 
           <div>
