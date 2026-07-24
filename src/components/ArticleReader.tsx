@@ -21,7 +21,8 @@ interface ArticleReaderProps {
 
 export default function ArticleReader({ article, allArticles, user, initialVisibleCount, isFavorite, onToggleFavorite, onOpenArticle, onProgressUpdate, onBack }: ArticleReaderProps) {
   // Split content by two or more newlines to allow markdown paragraphs within the same chunk
-  const chunks = article.content.split(/\n\n+/).filter(c => c.trim() !== '');
+  const contentStr = typeof article.content === 'string' ? article.content : String(article.content || '');
+  const chunks = contentStr.split(/\n\n+/).filter(c => c.trim() !== '');
   const [visibleCount, setVisibleCount] = useState(initialVisibleCount);
   const [copied, setCopied] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -442,9 +443,11 @@ export default function ArticleReader({ article, allArticles, user, initialVisib
                 )}
                 <h4 className="font-serif italic font-black text-xl mb-3 leading-tight group-hover:text-[#FF6321] transition-colors">{related.title}</h4>
                 <div className="mt-auto flex flex-wrap gap-2">
-                   {related.tags?.slice(0, 2).map(tag => (
-                     <span key={tag} className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-2 py-1 rounded text-gray-500 group-hover:text-black">#{tag}</span>
-                   ))}
+                   {related.tags?.slice(0, 2).map((tag, i) => {
+                     const tagStr = typeof tag === 'string' ? tag : String(tag);
+                     return (
+                     <span key={`rtag-${i}`} className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-2 py-1 rounded text-gray-500 group-hover:text-black">#{tagStr}</span>
+                   )})}
                 </div>
               </div>
             ))}

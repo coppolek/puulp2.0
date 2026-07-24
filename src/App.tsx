@@ -392,7 +392,7 @@ export default function App() {
                         createdAt: item.pubDate ? new Date(item.pubDate).getTime() : Date.now(),
                         author: item.creator || item.author || 'Admin',
                         imageUrl: item.extractedImageUrl || '',
-                        tags: Array.isArray(item.categories) ? item.categories : (item.categories ? [item.categories] : [])
+                        tags: (Array.isArray(item.categories) ? item.categories : (item.categories ? [item.categories] : [])).map((t: any) => typeof t === 'string' ? t : (t?._ ? String(t._) : String(t)))
                       });
                       added++;
                     }

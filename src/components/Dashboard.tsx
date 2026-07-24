@@ -119,15 +119,17 @@ export default function Dashboard({ articles, progressMap, favorites, onToggleFa
                   </h3>
                   {article.tags && article.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-4">
-                      {article.tags.map(tag => (
-                        <span key={tag} className="px-2 py-1 bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded">
-                          #{tag}
+                      {article.tags.map((tag, i) => {
+                        const tagStr = typeof tag === 'string' ? tag : String(tag);
+                        return (
+                        <span key={`tag-${i}`} className="px-2 py-1 bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded">
+                          #{tagStr}
                         </span>
-                      ))}
+                      )})}
                     </div>
                   )}
                   <p className="text-white/70 line-clamp-2 text-lg mb-8 flex-grow">
-                    {article.content.replace(/\n/g, ' ')}
+                    {typeof article.content === 'string' ? article.content.replace(/\n/g, ' ') : String(article.content || '')}
                   </p>
                   <div className="text-xs text-white font-black uppercase tracking-widest flex items-center justify-between">
                     <span className="flex items-center opacity-80">
@@ -177,15 +179,17 @@ export default function Dashboard({ articles, progressMap, favorites, onToggleFa
                 </h3>
                 {article.tags && article.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {article.tags.map(tag => (
-                      <span key={tag} className="px-2 py-1 bg-gray-100 text-black text-[10px] font-black uppercase tracking-widest rounded">
-                        #{tag}
+                    {article.tags.map((tag, i) => {
+                      const tagStr = typeof tag === 'string' ? tag : String(tag);
+                      return (
+                      <span key={`tag-${i}`} className="px-2 py-1 bg-gray-100 text-black text-[10px] font-black uppercase tracking-widest rounded">
+                        #{tagStr}
                       </span>
-                    ))}
+                    )})}
                   </div>
                 )}
                 <p className="text-gray-700 line-clamp-3 text-lg mb-8 flex-grow">
-                  {article.content.replace(/\n/g, ' ')}
+                  {typeof article.content === 'string' ? article.content.replace(/\n/g, ' ') : String(article.content || '')}
                 </p>
                 <div className="text-xs text-black font-black uppercase tracking-widest flex items-center justify-between">
                   <span className="opacity-60">
@@ -256,15 +260,17 @@ export default function Dashboard({ articles, progressMap, favorites, onToggleFa
                       </h3>
                       {article.tags && article.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-4">
-                          {article.tags.map(tag => (
-                            <span key={tag} className="px-2 py-1 bg-gray-100 text-black text-[10px] font-black uppercase tracking-widest rounded">
-                              #{tag}
+                          {article.tags.map((tag, i) => {
+                            const tagStr = typeof tag === 'string' ? tag : String(tag);
+                            return (
+                            <span key={`tag-${i}`} className="px-2 py-1 bg-gray-100 text-black text-[10px] font-black uppercase tracking-widest rounded">
+                              #{tagStr}
                             </span>
-                          ))}
+                          )})}
                         </div>
                       )}
                       <p className="text-gray-700 line-clamp-3 text-lg mb-8 flex-grow">
-                        {article.content.replace(/\n/g, ' ')}
+                        {typeof article.content === 'string' ? article.content.replace(/\n/g, ' ') : String(article.content || '')}
                       </p>
                       <div className="text-xs text-black font-black uppercase tracking-widest flex items-center justify-between">
                         <span className="opacity-60">
